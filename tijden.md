@@ -1,6 +1,6 @@
-#Tijden van pws:
+# Tijden van pws:
 
-##B-E:		     D:       	
+## Begin-Einde: Datum:       	
 
 16:00-17:25 28-11-2020	  
 Folders en een enviroment maken voor het schrijven van de raspberrypi code.
