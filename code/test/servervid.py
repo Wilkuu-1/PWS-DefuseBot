@@ -4,7 +4,6 @@ import sys
 import math
 import numpy as np
 import time
-import threading
 from PIL import Image
 
 #Socket Setup 
@@ -14,9 +13,21 @@ FORMAT = 'utf-8'
 SOCK  = socket.socket()
 SOCK.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 SOCK.bind(ADDR)
+
 #Other defaults
+outputtovar = True
 
 #SAVE FILE AS
+#USED TO OUTPUT OUT OF THREAD
+global recimage
+def tovar(shape,pbytes):
+    #RECREATE NP ARRAY 
+    a = np.frombuffer(pbytes,dtype=np.uint8)
+    b = a.reshape(shape)
+    #CONSTRUCT IMAGE 
+    out = b.rot90()
+    recimage = out
+
 def save(shape,pbytes,fname):
     #RECREATE NP ARRAY 
     a = np.frombuffer(pbytes,dtype=np.uint8)
@@ -26,7 +37,6 @@ def save(shape,pbytes,fname):
     out = out.rotate(-90,expand=1)
     #out = Image.frombytes('RGB',(shape[0],shape[1]),pbytes)
     out.save(fname)
-
 
 def handle(conn,addr):
     print(f"[{addr}]: Successfully connected\n[ACTIVE NOW]:[{threading.activeCount() -1}]")
@@ -62,6 +72,8 @@ def handle(conn,addr):
             shap = (coll[0],coll[1],3)
             print(f"[addr]:Shape tuple of image array:{shap} ")
             #calling save function
+            if outputtovar:
+                tovar(shap,coll[2])
             save(shap,coll[2],fname)
     conn.close()
 
@@ -70,6 +82,12 @@ def start():
     print(f"[SERVER]:Listening @ | {ADDR} |.")
     while True:
         conn, addr = SOCK.accept()
-        thread=threading.Thread(target=handle, args=(conn,addr))
-        thread.start()
-start()
+        #the server will now allow only one client
+        handle(conn,addr)
+        #It used threads previously:
+        #t = threading.Thread(function = handle)
+        #t.start()
+
+
+
+
