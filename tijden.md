@@ -39,3 +39,6 @@ Voor, tijdens en na de afspraak bij Barry:
 Raspberry pi solderen, nieuwe raspberry pi card maken 
 Met elkaar delen van informatie over hardware software en de bouw.
 Plan maken voor het maken van het verslag.
+
+22:00-2:40 09-01-2021  4:40
+Kloten aan een usb-stick, waarop al het software voor het aansturen op zal zitten inclusief de os
