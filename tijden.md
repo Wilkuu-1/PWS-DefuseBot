@@ -42,3 +42,6 @@ Plan maken voor het maken van het verslag.
 
 22:00-2:40 09-01-2021  4:40
 Kloten aan een usb-stick, waarop al het software voor het aansturen op zal zitten inclusief de os
+
+11:00-16:30 10-01-2021 5:30
+Verder Anode afmaken, Wi_dwm instaleren, snelheid verbeteren, in het verslag anode omschrijven
