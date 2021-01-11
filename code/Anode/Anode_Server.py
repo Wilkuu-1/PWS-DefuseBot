@@ -1,6 +1,4 @@
-#
-
-
+#!/usr/bin/env python
 #----------------------------------------------------------------------------
 # Anode_Server module 
 # Only to be invoked once 
@@ -15,15 +13,18 @@ import threading
 from PIL import Image
 
 #Socket Setup ---- Has to be the same on CATHODE
-ADDR = ("127.0.0.1",21122)
-HEAD = 4 #length of the msg_len message
-
+ADDR = ("127.0.0.1",21122) #Server adress 
+HEAD = 2 #length of the msg_len message in bytes
+#(2 bytes >> 65536 (Maximal recommended packet length for socket))
+MAX = 65536 #Max package length
 SOCK = socket.socket()
-#Lingering socket fix
+
+#Lingering socket fix (Server only)
 SOCK.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
 
 #Connections
 conns = []
+outarray = np.ndarray((1000,1000,3)) #A way for the image to be fetched by Anode_GUI 
 #Used to output to Anode_Server.outarray
 def b2var(shape,byt):
     global outarray
@@ -64,7 +65,7 @@ def handle(conn,addr):
             #Shape tuple
             shap = (rec[0],rec[1],3)
             #Output 
-            b2var(shap,rec[2]):
+            b2var(shap,rec[2])
     #close when the message length is too short 
     conn.close()
 
@@ -73,14 +74,27 @@ def listen():
     while True:
         #Accept client
         conn,addr= sock.accept()
-        #Handle only one client
+        #Handle only one client at the time 
         conns.append((conn,addr))
         handle(conn,addr)
         conns.remove((conn,addr))
 
-#sends packet to CATHODE #TODO
+#sends packet to CATHODE
 def sender(byt,conn = conns[0]):
-    pass
+    #Size of byt
+    leng = len(byt)
+    if leng > MAX:
+        #package splitting recursion
+        print("[WARNING] CATHODE does not support transfers larger than {MAX}b,\n [WARNING] Sending in pieces anyway...")
+        sender(byt[:MAX]) #sends first MAX bytes
+        time.sleep(0.005)
+        sender(byt[MAX:]) #sends the rest of the bytes
+    else:
+        #length in byte size 
+        lenb.to_bytes(MAX,byteorder = 'big')
+        print(f"[Sending] Packet with length {leng}")
+        SOCK.send(lenb) #send length
+        SOCK.send(pack) #send actual bytes
 
 def start():
     #Enabling socket
