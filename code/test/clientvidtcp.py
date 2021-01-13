@@ -7,33 +7,47 @@ from PIL import Image
 #Server protocol info
 DEST  =("127.0.0.1",21122)
 SOCK  = socket.socket()
-MAX   = 32768
+HEAD = 4 
+MAX  = 65536
+
 #Video 
 CAP = cv2.VideoCapture(0)
 
 
 #Leave and send message
-def close(msg):
+def close(msg = b""):
     sendpack(msg)
     #Checks for longer messages
-    if len(msg)> 8:
-        sendpack("")
+    if len(msg)> HEAD:
+        sendpack(b"")
 #Overloaded to leave without message
-def close():
-    close("")
+def passsig(b):
+    pass
+def waitfor(w = b'fffff',l = 0):
+    while True:
+        leng = SOCK.recv(HEAD)
+        if leng:
+            msg_len = int.from_bytes(leng,byteorder='big', signed=False)
+            rec = SOCK.recv(msg_len)
+            if l and len(rec) == l:
+                return rec
+            elif rec == w:
+                return
+            else:
+                passsig(rec)
 
 def sendpack(pack):
     leng= len(pack)
     #Packet split (will recurse, sending one 65536-long packet every time)
     if leng > MAX:
         sendpack(pack[:MAX])
-        time.sleep(0.005)
         sendpack(pack[MAX:])
     else:
-        lenb= leng.to_bytes(8, byteorder = 'big')
+        lenb= leng.to_bytes(HEAD, byteorder = 'big')
         print(f"[Sending]: Packet with length {leng}")
         SOCK.send(lenb)
         SOCK.send(pack)
+        time.sleep(0.01)
 
 ##MAIN LOOP
 def start():
