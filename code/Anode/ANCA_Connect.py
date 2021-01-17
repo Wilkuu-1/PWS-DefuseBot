@@ -25,7 +25,7 @@ CAfunc={
 #Server setup 
 AADDR = ("127.0.0.1",21122)  #Anode adress
 MAX   = 65536       #Maximal packlet size
-L_last= math.ceil(math.log(65536,255))
+L_last= math.ceil(math.log(65536.0,256.0))
 MBIG  = 255         #Maximal amount of MAX-sized(big) packlets (1 byte)
 #Header length
 HEADL = 1 +L_last+1 #size of /big/ + size of /last/ + size of /func/ 
@@ -39,32 +39,37 @@ HEADL = 1 +L_last+1 #size of /big/ + size of /last/ + size of /func/
 def MHEAD(leng,func=0): #Make a new header
     if leng > ((MBIG+1)*MAX):
         raise ValueError("PACKET TOO LARGE")
-    big  = bytes(math.floor((leng/MAX))) #amount of big paclets
-    last = (leng % MAX).to_bytes() #size of last packlet
-    func = bytes(func) #function to be called (0 for default)
+    big  = (math.floor((leng/MAX))) #amount of big paclets
+    bigb = big.to_bytes(1,byteorder ='big',signed=False) 
+    last = leng-big*MAX
+    lastb =last.to_bytes(L_last,byteorder ='big',signed=False) #size of last packlet
+    func = func.to_bytes(1,byteorder='big',signed =False) #function to be called (0 for default)
     #Returns Header with layout: /big(1b)/last(2b)/func(1b)/
-    return b''.join([big,last,func]),big,last #also returns how much packlets to send
+    head = b''.join([bigb,lastb,func])
+    return head,big,last #also returns how much packlets to send
 
 def RHEAD(head):        #Read a header
-    if len(head) != LHEAD:
-        raise ValueError("INVALID HEADER LENGTH")
-    big  = int.from_bytes(head[0],          signed=False) #please patch if MBIG>255
-    last = int.from_bytes(head[1:1+L_last], signed=False)
-    func = int.from_bytes(head[1+L_last:],  signed=False)
+    if len(head) != HEADL:
+        raise ValueError(f"INVALID HEADER LENGTH ({len(head)}/{HEADL})")
+    big  = int.from_bytes(head[0:1]         ,byteorder='big', signed=False) #please patch if MBIG>255
+    last = int.from_bytes(head[1:1+L_last],byteorder='big', signed=False)
+    func = int.from_bytes(head[1+L_last:] ,byteorder='big', signed=False)
     return big,last,func
 
 #Packet reciever
 #Runs code from speciefied func links , see FUNC LINKS
 def REC(conn,funclink=None):
     pac=b''
-    big,last,func = RHEAD(self.request.recv(HEADL))   #get header
+    big,last,func = RHEAD(conn.recv(4))   #get header
     for p in range(big):
         pac = b''.join([pac,conn.recv(MAX)]) #get big paclets
     pac=b''.join([pac,conn.recv(last)])   #get last paclet
     if funclink:#Check if funclink is given
         func = print
         args = ("Blank function call, probably really bad")
-        return funclink.get(func,(funklink.get(254))),pac,head #return things to eval
+        return funclink.get(func,(funclink.get(254))),pac #return things to eval
+    else:
+        return pac
 
 #Packet Sender
 def SND(conn,pac,func):
