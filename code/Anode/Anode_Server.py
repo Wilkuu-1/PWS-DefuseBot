@@ -19,6 +19,7 @@ import math
 import time
 from PIL import Image #Might not be necessary in the end
 
+sigs = []
 outarray = np.random.randint(0,255,(1000,1000,3)) #Array for Anode_GUI
 def b2var(byt): #creates array from bytes and sets outarray with it
     global outarray
@@ -34,6 +35,7 @@ def b2var(byt): #creates array from bytes and sets outarray with it
 #Request handler used as a interface for CATHODE
 class REQ(ssv.BaseRequestHandler):
     def setup(self):
+        conns.append(self.request)
         print(f"[{client_address}] Connected")
     #function error function
     def ferr(nr):
@@ -42,7 +44,10 @@ class REQ(ssv.BaseRequestHandler):
     def handle(self):
         while True:
             fun,pac,head = CATH.REC(self.request,funclink=funcl) #recieves packet
-            args = ("[WARNING]Blank function eval call") 
+            for sig in sigs if sigs:
+                CATH.SND(self.request,sig[0],sig[1]) #Send all signals from sigs list
+            sigs = []
+            args = ("[WARNING]Blank function eval call")
             func =  print
             for x in fun: #evals all from funclink
                 eval(x)

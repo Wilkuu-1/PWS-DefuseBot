@@ -22,8 +22,8 @@ rft = int(1000/30) #calculation for frsp
 rt = tk.Tk()
 
 #wrapper for sending control signals to CATHODE
-def sig(m: bytes):
-    server.sender(m)
+def sig(message,func=0):
+    server.sigs.append((message,func)):
 
 class Anode_Win(tk.Frame):
     #saves img that is being used as global, so it doesn't get garbage collected
