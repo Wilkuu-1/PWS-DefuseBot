@@ -1,34 +1,42 @@
 #
 #
 #-----------------------------------------------------------------------------
-# Anode - Cathode Connection Configuration File 
+# Anode - Cathode Connection Configuration File
 # Versions: Anode_Server V1.1
-# Import for network protocol settings and func functions 
+# Import for network protocol settings and remote execution
 #-----------------------------------------------------------------------------
 import math
 
 #++FUNC LINKS
+#TODO find a safer way to execute functions
 #WARNING: THIS EVALS THE STRINGS ENTERED, DON'T ENTER STUPID THINGS
 ANfunc={
-        0:("func = b2var","args = (pac)"), #Default:process image
-        1:("next = True"),
+        0:("func = b2var",  "args = (pac)"), #Default:process image
+        1:("next = True"),                   #Sync sygnal
+        2:("func = status", "args = (pac)" )
         254:("func = self.ferr","args = (head[2])"), #Raises error
-        255:("func = break"), #Ends handle function 
+        255:("func = break"), #Ends handle function
         }
 CAfunc={
-        0:("func = pass")
+        0:("func = pass")                     #Default:pass
+        1:("next = True")                     #Sync sygnal
+        2:("func = keyup",  "args = (pac) ")  #Key up
+        3:("func = keydown","args = (pac) ")  #Key down
+        4:("func = setstatus, args = (pac)")  #Set a variable
+        254:("func = self.ferr","args = (head[2])"), #Raises unknown function error
+        255:("func = break"),                 #Ends handle function
         }
 
 #++END OF FUNC LINKS
 
-#++NETWORK CONFIG 
-#Server setup 
-AADDR = ("127.0.0.1",21122)  #Anode adress
-MAX   = 65536       #Maximal packlet size
+#++NETWORK CONFIG
+#Server setup
+AADDR = ("127.0.0.1",21122)                    #Anode adress
+MAX   = 65536                                  #Maximal packlet size
 L_last= math.ceil(math.log(65536.0,256.0))
-MBIG  = 255         #Maximal amount of MAX-sized(big) packlets (1 byte)
+MBIG  = 255                                    #Maximal amount of MAX-sized(big) packlets (1 byte)
 #Header length
-HEADL = 1 +L_last+1 #size of /big/ + size of /last/ + size of /func/ 
+HEADL = 1 +L_last+1 #size of /big/ + size of /last/ + size of /func/
 
 
 #++END OF NETWORK CONFIG
@@ -40,7 +48,7 @@ def MHEAD(leng,func=0): #Make a new header
     if leng > ((MBIG+1)*MAX):
         raise ValueError("PACKET TOO LARGE")
     big  = (math.floor((leng/MAX))) #amount of big paclets
-    bigb = big.to_bytes(1,byteorder ='big',signed=False) 
+    bigb = big.to_bytes(1,byteorder ='big',signed=False)
     last = leng-big*MAX
     lastb =last.to_bytes(L_last,byteorder ='big',signed=False) #size of last packlet
     func = func.to_bytes(1,byteorder='big',signed =False) #function to be called (0 for default)
@@ -51,7 +59,7 @@ def MHEAD(leng,func=0): #Make a new header
 def RHEAD(head):        #Read a header
     if len(head) != HEADL:
         raise ValueError(f"INVALID HEADER LENGTH ({len(head)}/{HEADL})")
-    big  = int.from_bytes(head[0:1]         ,byteorder='big', signed=False) #please patch if MBIG>255
+    big  = int.from_bytes(head[0:1]       ,byteorder='big', signed=False) #please patch if MBIG>255
     last = int.from_bytes(head[1:1+L_last],byteorder='big', signed=False)
     func = int.from_bytes(head[1+L_last:] ,byteorder='big', signed=False)
     return big,last,func
