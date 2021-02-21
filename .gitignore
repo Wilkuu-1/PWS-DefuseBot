@@ -5,3 +5,7 @@
 **/*.egg-info
 #ignore compiled:
 **/*.pyc
+**/__pycache__
+#ignore copied Connect libraries
+**/ANCA_Connect.py
+!/src/ANCA_Connect.py

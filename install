@@ -1,0 +1,39 @@
+#!/bin/sh
+
+#-------------------------------------------------------------------------------
+# Install script
+#
+# Run with -a or -c arguments to install anode or cathode
+#-------------------------------------------------------------------------------
+
+
+#Get opts for target program
+case $1 in
+   "a" ) path="./src/Anode/" ; name="PWS-Anode";;
+   "c" ) path="./src/Cathode/";name="PWS-Cathode";;
+esac
+
+
+if [ -z "$path" ]
+then
+    echo "No program option chosen."
+    echo "Options available:"
+    echo "a : Anode"
+    echo "c : Cathode"
+    echo "-u: Uninstall any of the above (ex.: install a -u)"
+    exit 1
+fi
+#actual instalation
+inst()
+{
+    echo "Installing: $name"
+    python3 -m pip install --force-reinstall -e $path
+}
+
+uninst()
+{
+    echo "Uninstalling: $name"
+    python3 -m pip uninstall --no-input $name
+}
+
+[[ $2 = "-u" ]] && uninst || inst
