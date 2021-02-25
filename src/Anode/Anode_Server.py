@@ -9,7 +9,7 @@
 import ANCA_Connect as CATH
 funcl = CATH.ANfunc
 AADDR = CATH.AADDR
-#Important imports 
+#Important imports
 import socketserver as ssv
 import numpy as np
 import threading
@@ -32,6 +32,9 @@ def b2var(byt): #creates array from bytes and sets outarray with it
     except:
         print("frame dropped")
 
+def signal(signal,func):
+    sigs.append((signal,func))
+    print(f"signal {signal} func: {func} sent")
 #Request handler used as a interface for CATHODE
 class REQ(ssv.BaseRequestHandler):
     def setup(self):
@@ -44,8 +47,9 @@ class REQ(ssv.BaseRequestHandler):
     def handle(self):
         while True:
             fun,pac,head = CATH.REC(self.request,funclink=funcl) #recieves packet
-            for sig in sigs if sigs:
-                CATH.SND(self.request,sig[0],sig[1]) #Send all signals from sigs list
+            if sigs:
+                for sig in sigs:
+                    CATH.SND(self.request,sig[0],sig[1]) #Send all signals from sigs list
             sigs = []
             args = ("[WARNING]Blank function eval call")
             func =  print
@@ -58,8 +62,3 @@ def start():#starts server
     with ssv.ThreadingTCPServer(AADDR,REQ) as ANODE:
         print(f"[SERVER]Listening on: {AADDR}")
         ANODE.serve_forever()
-start()
-
-
-
-

@@ -1,12 +1,12 @@
 #!/bin/env python
 #---------------------------------------------------------------------------
 # Anode_GUI module
-# Only to be invoked once 
+# Only to be invoked once
 # Creates GUI for Anode
 #---------------------------------------------------------------------------
 import sys
 import numpy as np
-import time 
+import time
 import threading
 import tkinter as tk
 from PIL import Image,ImageTk
@@ -15,21 +15,69 @@ import Anode_Server as server
 #Options
 frps = 30 #frame refreshes per second
 
-#Option calculations 
+#Option calculations
 rft = int(1000/30) #calculation for frsp
 
-#Root window instance 
+#Root window instance
 rt = tk.Tk()
 
-#wrapper for sending control signals to CATHODE
-def sig(message,func=0):
-    server.sigs.append((message,func)):
+class KeyHandle(): #Single key handling
+    def __init__(self,keycode,send=True,func=None,args=(None),onState=True):
+        #True- > Keydown False-> Keyup
+        self.keycode = keycode
+        self.pressed = False
+        self.hasFunction = bool(func)
+        self.func = func
+        self.funcargs = args
+        self.onState= onState
+        self.send= send
+        self.refresh(keycode,False) #Resets on initialization
+    def __repr__(self):
+        return f"Key <{self.keycode}>,s:{self.send} f:{self.func}"
+    def isPressed(self): #state getter
+        return self.pressed
+    def refresh(self,key,state):
+        #check if not redundant and if the key matches
+        if state != self.pressed and key == self.keycode:
+            #set pressed
+            self.pressed = state
+            #send packet
+            if self.send:
+                server.signal(self.keycode.to_bytes(2,byteorder='big',signed=False),2+int(state))
+                #CAfunc: 2-4:keyset(key,0-2)
+            if self.hasFunction and state == self.onState:
+                self.func(*self.funcargs) #executes added function
+            return True
+        return False
+
+class KeyHandleGroup(): #Adds proper keydown and keyup support
+    keys = []
+    def __init__(self,keylist = None):
+        if keylist:
+            self.keys = keylist
+    def addKey(self,key):
+        self.keys.append(key)
+    def onKeyDown(self,ev): #Wrapper
+        self.keyedit(ev,True)
+    def onKeyUp(self,ev):   #Wrapper
+        self.keyedit(ev,False)
+    def keyedit(self,ev,state): #Refreshes the keys until the actual one is found
+        sym = ev.keycode
+        for key in self.keys:
+            if key.refresh(sym,state):
+                return
+#Keyhandlegroup
+keygroup=KeyHandleGroup()
+#Keymap for Cathode stuff (in keycodes)
+CATHkey =[7,25,38,39,40,79,80,81,83,84,85,87,88]
 
 class Anode_Win(tk.Frame):
     #saves img that is being used as global, so it doesn't get garbage collected
     #initialize shown
     global imgs
     imgs = [ImageTk.PhotoImage(Image.fromarray(server.outarray,mode='RGB'))]
+    #init key detection
+    keybinds = KeyHandleGroup()
     #makes the label the image is shown in
     def mklabel(self):
         self.lab= tk.Label(rt,image=imgs[0])
@@ -50,13 +98,16 @@ class Anode_Win(tk.Frame):
         self.master.mainloop()
     #initialization of binds
     def keybinds(self):
-        #Keybindings
-        #self.bind(<key>,server.sender(b'0000')) 
-        self.bind('<Down>', lambda: sig(b'0001')) #main motors backward
-        self.bind('<Up>',   lambda: sig(b'0002')) #main motors forward
-        self.bind('<Left>', lambda: sig(b'0003')) #main motors left
-        self.bind('<Right>',lambda: sig(b'0004')) #main motors right
-        #TODO add more controls
+        #Additional anode keybinds go here:
+        #-=---------=-
+        for i in CATHkey: #adding cathode keys
+            keygroup.addKey(KeyHandle(i))
+        print(keygroup.keys)
+        #binding keygroup to proper events
+        self.bind_all('<KeyPress>', keygroup.onKeyDown)
+        self.bind_all('<KeyRelease>' , keygroup.onKeyUp)
+        #TODO Learn Tkinter events better, this KeyHandle solution might be unnecessary
+
     #initialization
     def __init__(self,master=rt):
         tk.Frame.__init__(self,master)
@@ -65,7 +116,7 @@ class Anode_Win(tk.Frame):
 
 if __name__ == "__main__":
     w=Anode_Win() #make Anode_Win instance
-    server.start() #start Anode_Server
+    s = threading.Thread(target=server.start)
+    s.start() #start Anode_Server
+    print('starting GUI')
     w.start() #start Anode_Win
-
-
