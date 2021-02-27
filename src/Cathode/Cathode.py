@@ -28,7 +28,7 @@ import RPi.GPIO as GPIO
 
 #GPIO Convention
 GPIO.setmode(GPIO.BCM)
-#Servo controller
+#Servo controller Needs adafruit_gpio.ic2
 SERVO = Adafruit_PCA9685.PCA9685()
 #Global socket
 SOCK = socket.socket()
@@ -65,10 +65,14 @@ keyval ={keylst['UP']:False,
 
 #Thread objects
 picThread     = Threading.Thread(target=picture)
-handleThread  = Threading.Thread(target=handle)
 manThread     = Threading.Thread(target=update)
 #Camera objects
 camera = PiCamera()
+#Kill var
+notStopped = True
+
+def givestatus(message):
+    ANODE.SND(SOCK,message.encode('utf-8'),2)
 
 def getkey(key)
     return keyval[keylist[key]]
@@ -83,11 +87,12 @@ def motorSpeed(s,key,antag,incr): #TODO tune and test all key combos
         if UP and !DW: speed=speed+incr #Forward increase
         if KE:         speed=speed+incr #Turn increase
     if speed > -1.0:
-        if DW and !UP:
+        if DW and !UP and:
             speed=speed-incr #Backward decrease
-            if speed >0.0  :speed=0 #Stop if want to go backwards
+            if speed >0.0 and KE! :speed=0 #Stop if want to go backwards
         elif speed > 0.5  and AN and UP :speed=0.5 #Cap speed going forward and turning other way
         if AN: speed=speed-incr #Turn decrease
+    if speed != 0 and !UP and !DW and !AN and !KE: speed = 0
     if   speed > 1.0 : speed = 1.0 #clamp
     elif speed < -1.0: speed = -1.0
     return speed, s != speed
@@ -98,6 +103,8 @@ def servoAngle(a,keyp,incr):
     DW = getkey(f'{keyp}DW')
     if   UP and !DW: angle= angle + incr
     elif DW and !UP: angle= angle - incr
+    if a > 1.0: a = 1.0
+    if a < 0.0: a = 0.0
     return angle, angle != a
 
 motorIncr = 0.2
@@ -110,24 +117,29 @@ def update():
     motorL = Cathode_Motor.Motor(27,22,12)
     motorR = Cathode_Motor.Motor(23,24,13)
     #init servos
+    SERVO.set_pwm_freq(50) #Sets pwm freq to 60hz
+    for i in range(9,12): #resets all servos to 0 position
+        SERVO.setpwm(i,0,0)
     angles = [0.0,0.0,0.0,0.0]
+    givestatus("update loop starting")
     #Loop
-    while True:
+    while notStopped:
         motorLSpeed,Lch= motorSpeed(motorLSpeed,'RI','LE',motorIncr)
         motorRSpeed,Rch= motorSpeed(motorRSpeed,'LE','RI',motorIncr)
         if Lch: motorL.setSpeed(motorLspeed)
         if Rch: motorR.setSpeed(motorRspeed)
         angles[0],chS = servoAngle(angles[0],'A',servoIncr[0])
-        if chS: Servo.someServoFunction(angles[0])
+        if chS: SERVO.set_pwm(8,0,angles[0]*635)
         angles[1],chS = servoAngle(angles[1],'B',servoIncr[1])
-        if chS: servos[1].someServoFunction(angles[1])
+        if chS: SERVO.set_pwm(9,0,angles[1]*635)
         angles[2],chS = servoAngle(angles[2],'C',servoIncr[2])
-        if chS: servos[2].someServoFunction(angles[2])
+        if chS: SERVO.set_pwm(10,0,angles[2]*635)
         angles[3],chS = servoAngle(angles[3],'D',servoIncr[3])
-        if chS: servos[3].someServoFunction(angles[3])
+        if chS: SERVO.set_pwm(11,0,angles[3]*635)
 
 def keyset(byt,m):
     #TODO add some sync
+    givestatus("a key has been set")
     key = int.from_bytes(byt,order='big',signed=False)
     if m > 1: #check if the key has to be toggled
         keyval[key] = !keyval[key]
@@ -144,8 +156,10 @@ def setstatus(byt): #dangerous value changing function
         eval(f"{name}={int(valb)}")
     if t == 2:
         eval(f"{name}={string(valb)}")
+    givestatus("variable {name} changed to {valb}")
 
 def handle():
+    givestatus("handle loop starting")
     while True:
          func=print
          args=("blankfunc")
@@ -153,23 +167,27 @@ def handle():
          for e in toeval:
             eval(e)
          func(*args)
+    notStopped = False
 
 #image buffer
 imgbytes = io.BytesIO()
 
 def picture():
+    time.sleep(2) #camera warmup
     #take, parse, send: picture
-    #PIL.Image: pic = someRPICamFunction
-    pic.save(imgbytes,format="jpeg")
-    ANODE.SND(SOCK,imgbytes.getvalue(),0) #sends pic as jpeg
+    while notStopped:
+        Camera.capture(imgbytes,"jpeg")
+        ANODE.SND(SOCK,imgbytes.getvalue(),0) #sends pic as jpeg
+        time.sleep(1/30) #simple refresh rate limiter
 
 def start():
     #socket setup
     SOCK.connect(ANODE.AADDR)
+    givestatus("connected")
     #3 loops:
     picThread.start() #sends pictures to Anode
-    handleThread.start() #handles requests from Anode
     manThread.start()   #Manages the machine
+    handle() #handles requests
 
 if __name__ == "__main__":
     print(f"Cathode remote control client {version}:\n")

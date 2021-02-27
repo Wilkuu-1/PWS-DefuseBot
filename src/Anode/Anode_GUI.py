@@ -74,13 +74,13 @@ CATHkey =[7,25,38,39,40,79,80,81,83,84,85,87,88]
 class Anode_Win(tk.Frame):
     #saves img that is being used as global, so it doesn't get garbage collected
     #initialize shown
-    global imgs
-    imgs = [ImageTk.PhotoImage(Image.fromarray(server.outarray,mode='RGB'))]
+    global img
+    img = ImageTk.PhotoImage(server.outimg)
     #init key detection
     keybinds = KeyHandleGroup()
     #makes the label the image is shown in
     def mklabel(self):
-        self.lab= tk.Label(rt,image=imgs[0])
+        self.lab= tk.Label(rt,image=img)
         self.lab.pack()
         print(self.lab)
         return self.lab
@@ -88,8 +88,8 @@ class Anode_Win(tk.Frame):
     def refr(self):
         global img
         #Get shown refreshed
-        imgs[0] = ImageTk.PhotoImage(Image.fromarray(server.outarray,mode='RGB'))
-        self.lab.configure(image=imgs[0]) #set lab to new shown #TODO Check if needed
+        img = ImageTk.PhotoImage(server.outimg)
+        self.lab.configure(image=img) #set lab to new shown #TODO Check if needed
         self.master.after(rft,self.refr) #Schedule new refresh
     #event loop start
     def start(self):

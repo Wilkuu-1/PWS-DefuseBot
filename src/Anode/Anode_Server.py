@@ -17,18 +17,18 @@ import threading
 import sys
 import math
 import time
-from PIL import Image #Might not be necessary in the end
+from PIL import Image
+import io
 
 sigs = []
-outarray = np.random.randint(0,255,(1000,1000,3)) #Array for Anode_GUI
+outimg = Image.fromarray(np.random.randint(0,255,(1000,1000,3)),mode="RGB") #Array for Anode_GUI
+imgbuf = io.BytesIO()
 def b2var(byt): #creates array from bytes and sets outarray with it
-    global outarray
+    global outimg
     #First 4 bytes define resolution (2 ints), 3 colors
-    shap  = (int.from_bytes(byt[0:2],signed=False),
-             int.from_bytes(byt[2:4],signed=False), 3)
-    byt = byt[4:]
     try: #array creation
-        outarray = np.frombuffer(byt,dtype=np.uint8).reshape(shap)
+        imgbuf.write(byt)
+        outimg = Image.open(imgbuf)
     except:
         print("frame dropped")
 
