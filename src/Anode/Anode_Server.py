@@ -31,6 +31,8 @@ def b2var(byt): #creates array from bytes and sets outarray with it
         outimg = Image.open(imgbuf)
     except:
         print("frame dropped")
+def status(byt):
+    print(f"Message from Cathode:\n{byt.decode(utf-8)}")
 
 def signal(signal,func):
     sigs.append((signal,func))

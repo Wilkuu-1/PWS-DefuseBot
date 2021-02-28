@@ -12,14 +12,12 @@ import math
 #WARNING: THIS EVALS THE STRINGS ENTERED, DON'T ENTER STUPID THINGS
 ANfunc={
         0:("func = b2var",  "args = (pac)"), #Default:process image
-        1:("next = True"),                   #Sync sygnal
         2:("func = status", "args = (pac)" ),
         254:("func = self.ferr","args = (head[2])"), #Raises error
         255:("func = break"), #Ends handle function
         }
 CAfunc={
         0:("func = pass"),                     #Default:pass
-        1:("next = True"),                     #Sync sygnal
         2:("func = keyup",  "args = (pac,0) "),  #Key up
         3:("func = keydown","args = (pac,1) "),  #Key down
         4:("func = setstatus, args = (pac,2)"),  #Set a variable
