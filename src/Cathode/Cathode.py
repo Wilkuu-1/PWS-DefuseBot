@@ -72,7 +72,7 @@ def givestatus(message):
     ANODE.SND(SOCK,message.encode('utf-8'),2)
 
 def getkey(key):
-    return keyval[keylist[key]]
+    return keyval[keylst[key]]
 
 def motorSpeed(s,key,antag,incr): #TODO tune and test all key combos
     UP = getkey('UP') #Probe controls
@@ -116,8 +116,6 @@ def update():
     motorR = Cathode_Motor.Motor(23,24,13)
     #init servos
     SERVO.set_pwm_freq(50) #Sets pwm freq to 60hz
-    for i in range(9,12): #resets all servos to 0 position
-        SERVO.setpwm(i,0,0)
     angles = [0.0,0.0,0.0,0.0]
     givestatus("update loop starting")
     #Loop
@@ -156,14 +154,16 @@ def setstatus(byt): #dangerous value changing function
         eval(f"{name}={string(valb)}")
     givestatus("variable {name} changed to {valb}")
 
+def ferr(n):
+    print("invalid func")
 def handle():
     givestatus("handle loop starting")
     while True:
          func=print
          args=("blankfunc")
-         toeval,pac = ANODE.REC(SOCK,funclink=CAfunc)
+         toeval,pac = ANODE.REC(SOCK,funclink=ANODE.CAfunc)
          for e in toeval:
-            eval(e)
+            exec(e)
          func(*args)
     notStopped = False
 
@@ -174,7 +174,7 @@ def picture():
     time.sleep(5) #camera warmup
     #take, parse, send: picture
     while notStopped:
-        Camera.capture(imgbytes,"jpeg")
+        camera.capture(imgbytes,"jpeg")
         ANODE.SND(SOCK,imgbytes.getvalue(),0) #sends pic as jpeg
         time.sleep(1/30) #simple refresh rate limiter
 

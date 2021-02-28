@@ -13,7 +13,7 @@ import math
 ANfunc={
         0:("func = b2var",  "args = (pac)"), #Default:process image
         2:("func = status", "args = (pac)" ),
-        254:("func = self.ferr","args = (head[2])"), #Raises error
+        254:("func = self.ferr","args = (254)"), #Raises error
         255:("func = break"), #Ends handle function
         }
 CAfunc={
@@ -21,7 +21,7 @@ CAfunc={
         2:("func = keyup",  "args = (pac,0) "),  #Key up
         3:("func = keydown","args = (pac,1) "),  #Key down
         4:("func = setstatus, args = (pac,2)"),  #Set a variable
-        254:("func = self.ferr","args = (head[2])"), #Raises unknown function error
+        254:("func = ferr","args = (254)"), #Raises unknown function error
         255:("func = break"),                 #Ends handle function
         }
 
@@ -29,7 +29,7 @@ CAfunc={
 
 #++NETWORK CONFIG
 #Server setup
-AADDR = ("127.0.0.1",21122)                    #Anode adress
+AADDR = ("192.168.1.34",21122)                    #Anode adress
 MAX   = 65536                                  #Maximal packlet size
 L_last= math.ceil(math.log(65536.0,256.0))
 MBIG  = 255                                    #Maximal amount of MAX-sized(big) packlets (1 byte)
