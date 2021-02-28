@@ -9,27 +9,27 @@ import math
 
 #++FUNC LINKS
 #TODO find a safer way to execute functions
-#WARNING: THIS EVALS THE STRINGS ENTERED, DON'T ENTER STUPID THINGS
+#WARNING: THIS EXECS THE STRINGS ENTERED, DON'T ENTER STUPID THINGS
 ANfunc={
-        0:("func = b2var",  "args = (pac)"), #Default:process image
-        2:("func = status", "args = (pac)" ),
-        254:("func = self.ferr","args = (254)"), #Raises error
-        255:("func = break"), #Ends handle function
+        0:("b2var(pac)"), #Default:process image
+        2:("status(pac)" ),
+        254:("self.ferr(254)"), #Raises error
+        255:("break"), #Ends handle function
         }
 CAfunc={
-        0:("func = pass"),                     #Default:pass
-        2:("func = keyup",  "args = (pac,0) "),  #Key up
-        3:("func = keydown","args = (pac,1) "),  #Key down
-        4:("func = setstatus, args = (pac,2)"),  #Set a variable
-        254:("func = ferr","args = (254)"), #Raises unknown function error
-        255:("func = break"),                 #Ends handle function
+        0:("pass"),                     #Default:pass
+        2:("keyset(pac,0)"),  #Key up
+        3:("keyset(pac,1)"),  #Key down
+        4:("setstatus(pac,2)"),  #Set a variable
+        254:("ferr(254)"), #Raises unknown function error
+        255:("break"),                 #Ends handle function
         }
 
 #++END OF FUNC LINKS
 
 #++NETWORK CONFIG
 #Server setup
-AADDR = ("192.168.178.31",21122)                    #Anode adress
+AADDR = ("192.168.178.30",21122)                    #Anode adress
 MAX   = 65536                                  #Maximal packlet size
 L_last= math.ceil(math.log(65536.0,256.0))
 MBIG  = 255                                    #Maximal amount of MAX-sized(big) packlets (1 byte)
