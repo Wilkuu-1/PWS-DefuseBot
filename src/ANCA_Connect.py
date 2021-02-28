@@ -29,7 +29,7 @@ CAfunc={
 
 #++NETWORK CONFIG
 #Server setup
-AADDR = ("192.168.1.34",21122)                    #Anode adress
+AADDR = ("192.168.178.31",21122)                    #Anode adress
 MAX   = 65536                                  #Maximal packlet size
 L_last= math.ceil(math.log(65536.0,256.0))
 MBIG  = 255                                    #Maximal amount of MAX-sized(big) packlets (1 byte)

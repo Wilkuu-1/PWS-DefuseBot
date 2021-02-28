@@ -10,7 +10,7 @@ class Motor():
     pin2 = None
     pin3 = None
     pwm  = None
-    def __init__(pin1,pin2,pinpwm):
+    def __init__(self,pin1,pin2,pinpwm):
         self.pin1  = pin1
         self.pin2  = pin2
         GPIO.setup(pin1,  GPIO.OUT)
