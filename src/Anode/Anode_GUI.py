@@ -49,6 +49,20 @@ class KeyHandle(): #Single key handling
                 self.func(*self.funcargs) #executes added function
             return True
         return False
+    
+CATHkeyWin ={49:7,
+             87:25,
+             65:38,
+             83:39,
+             68:40,
+             103:79,
+             104:80,
+             105:81,
+             100:83,
+             101:84,
+             102:85,
+             97:87,
+             98:88}
 
 class KeyHandleGroup(): #Adds proper keydown and keyup support
     keys = []
@@ -62,14 +76,17 @@ class KeyHandleGroup(): #Adds proper keydown and keyup support
     def onKeyUp(self,ev):   #Wrapper
         self.keyedit(ev,False)
     def keyedit(self,ev,state): #Refreshes the keys until the actual one is found
-        sym = ev.keycode
+        #sym = ev.keycode
+        sym = CATHkeyWin.get(ev.keycode,0)
+        #print(sym)
         for key in self.keys:
             if key.refresh(sym,state):
                 return
 #Keyhandlegroup
 keygroup=KeyHandleGroup()
 #Keymap for Cathode stuff (in keycodes)
-CATHkey =[7,25,38,39,40,79,80,81,83,84,85,87,88]
+CATHkey =[7,25,38,39,40,79,80,81,83,84,85,87,88] #linux config
+
 
 class Anode_Win(tk.Frame):
     #saves img that is being used as global, so it doesn't get garbage collected

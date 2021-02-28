@@ -40,15 +40,15 @@ def signal(signal,func):
 #Request handler used as a interface for CATHODE
 class REQ(ssv.BaseRequestHandler):
     def setup(self):
-        conns.append(self.request)
-        print(f"[{client_address}] Connected")
+        print(f"Someone Connected")
     #function error function
     def ferr(nr):
         raise ValueError(f"[Error]Number [{nr}] not linked.")
     #handle function
     def handle(self):
+        global sigs
         while True:
-            fun,pac,head = CATH.REC(self.request,funclink=funcl) #recieves packet
+            fun,pac = CATH.REC(self.request,funclink=funcl) #recieves packet
             if sigs:
                 for sig in sigs:
                     CATH.SND(self.request,sig[0],sig[1]) #Send all signals from sigs list
@@ -56,7 +56,7 @@ class REQ(ssv.BaseRequestHandler):
             args = ("[WARNING]Blank function eval call")
             func =  print
             for x in fun: #evals all from funclink
-                eval(x)
+                exec(x)
             func(*args) #executes constructed function
             CATH.SND(self.request,b"abcd",1) #Acknowleges packet
 
