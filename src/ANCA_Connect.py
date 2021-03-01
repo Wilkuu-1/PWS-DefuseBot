@@ -30,11 +30,11 @@ CAfunc={
 #++NETWORK CONFIG
 #Server setup
 AADDR = ("192.168.178.30",21122)                    #Anode adress
-MAX   = 65536                                  #Maximal packlet size
-L_last= math.ceil(math.log(65536.0,256.0))
-MBIG  = 255                                    #Maximal amount of MAX-sized(big) packlets (1 byte)
+MAX   = 8192                                 #Maximal packlet size
+L_last= math.ceil(math.log(8192,256.0))
+MBIG  = 65536                                 #Maximal amount of MAX-sized(big) packlets (1 byte)
 #Header length
-HEADL = 1 +L_last+1 #size of /big/ + size of /last/ + size of /func/
+HEADL = 2 +L_last+1 #size of /big/ + size of /last/ + size of /func/
 
 
 #++END OF NETWORK CONFIG
@@ -46,7 +46,7 @@ def MHEAD(leng,func=0): #Make a new header
     if leng > ((MBIG+1)*MAX):
         raise ValueError("PACKET TOO LARGE")
     big  = (math.floor((leng/MAX))) #amount of big paclets
-    bigb = big.to_bytes(1,byteorder ='big',signed=False)
+    bigb = big.to_bytes(2,byteorder ='big',signed=False)
     last = leng-big*MAX
     lastb =last.to_bytes(L_last,byteorder ='big',signed=False) #size of last packlet
     func = func.to_bytes(1,byteorder='big',signed =False) #function to be called (0 for default)
@@ -57,8 +57,8 @@ def MHEAD(leng,func=0): #Make a new header
 def RHEAD(head):        #Read a header
     if len(head) != HEADL:
         raise ValueError(f"INVALID HEADER LENGTH ({len(head)}/{HEADL})")
-    big  = int.from_bytes(head[0:1]       ,byteorder='big', signed=False) #please patch if MBIG>255
-    last = int.from_bytes(head[1:1+L_last],byteorder='big', signed=False)
+    big  = int.from_bytes(head[0:2]       ,byteorder='big', signed=False)
+    last = int.from_bytes(head[2:1+L_last],byteorder='big', signed=False)
     func = int.from_bytes(head[1+L_last:] ,byteorder='big', signed=False)
     return big,last,func
 
@@ -69,7 +69,7 @@ def REC(conn,funclink=None):
     head = conn.recv(4)
     big,last,func = RHEAD(head)   #get header
     conn.send(head)
-    print(f"recieving {big+1} packlets")
+    print(big,last,func)
     for p in range(big):
         pac.append(conn.recv(MAX)) #get big paclets
     pac.append(conn.recv(last))   #get last paclet
