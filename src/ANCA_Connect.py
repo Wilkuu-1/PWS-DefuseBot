@@ -21,7 +21,7 @@ CAfunc={
         2:("keyset(pac,0)"),  #Key up
         3:("keyset(pac,1)"),  #Key down
         4:("setstatus(pac,2)"),  #Set a variable
-        254:("ferr(254)"), #Raises unknown function error
+        254:("ferr()"), #Raises unknown function error
         255:("break"),                 #Ends handle function
         }
 
@@ -65,22 +65,25 @@ def RHEAD(head):        #Read a header
 #Packet reciever
 #Runs code from speciefied func links , see FUNC LINKS
 def REC(conn,funclink=None):
-    pac=b''
-    big,last,func = RHEAD(conn.recv(4))   #get header
+    pac=[]
+    head = conn.recv(4)
+    big,last,func = RHEAD(head)   #get header
+    conn.send(head)
+    print(f"recieving {big+1} packlets")
     for p in range(big):
-        pac = b''.join([pac,conn.recv(MAX)]) #get big paclets
-    pac=b''.join([pac,conn.recv(last)])   #get last paclet
+        pac.append(conn.recv(MAX)) #get big paclets
+    pac.append(conn.recv(last))   #get last paclet
+    pac= b''.join(pac)
     if funclink:#Check if funclink is given
-        func = print
-        args = ("Blank function call, probably really bad")
-        return funclink.get(func,(funclink.get(254))),pac #return things to eval
+        return funclink.get(func,(funclink.get(254))),pac,func #return things to eval
     else:
-        return pac
+        return pac,func
 
 #Packet Sender
 def SND(conn,pac,func):
     head, big, last  = MHEAD(len(pac),func=func)
-    conn.send(head)                #send header
+    conn.send(head)#send header
+    if conn.recv(4) != head: print("ANCA: Sending packet missync")
     for x in range(0,big*MAX,MAX): #send big paclets
         conn.send(pac[x:x+MAX])
     conn.send(pac[:last])          #send last paclet
