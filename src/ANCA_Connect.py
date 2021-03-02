@@ -6,6 +6,7 @@
 # Import for network protocol settings and remote execution
 #-----------------------------------------------------------------------------
 import math
+import time
 
 #++FUNC LINKS
 #TODO find a safer way to execute functions
@@ -29,9 +30,9 @@ CAfunc={
 
 #++NETWORK CONFIG
 #Server setup
-AADDR = ("192.168.178.30",21122)                    #Anode adress
-MAX   = 8192                                 #Maximal packlet size
-L_last= math.ceil(math.log(8192,256.0))
+AADDR = ("10.42.0.1",21122)                    #Anode adress
+MAX   = 1024                                 #Maximal packlet size
+L_last= math.ceil(math.log(2028,256.0))
 MBIG  = 65536                                 #Maximal amount of MAX-sized(big) packlets (1 byte)
 #Header length
 HEADL = 2 +L_last+1 #size of /big/ + size of /last/ + size of /func/
@@ -58,22 +59,20 @@ def RHEAD(head):        #Read a header
     if len(head) != HEADL:
         raise ValueError(f"INVALID HEADER LENGTH ({len(head)}/{HEADL})")
     big  = int.from_bytes(head[0:2]       ,byteorder='big', signed=False)
-    last = int.from_bytes(head[2:1+L_last],byteorder='big', signed=False)
-    func = int.from_bytes(head[1+L_last:] ,byteorder='big', signed=False)
+    last = int.from_bytes(head[2:2+L_last],byteorder='big', signed=False)
+    func = int.from_bytes(head[2+L_last:] ,byteorder='big', signed=False)
     return big,last,func
 
 #Packet reciever
 #Runs code from speciefied func links , see FUNC LINKS
 def REC(conn,funclink=None):
-    pac=[]
-    head = conn.recv(4)
+    pac=b''
+    head = conn.recv(5)
     big,last,func = RHEAD(head)   #get header
     conn.send(head)
     print(big,last,func)
-    for p in range(big):
-        pac.append(conn.recv(MAX)) #get big paclets
-    pac.append(conn.recv(last))   #get last paclet
-    pac= b''.join(pac)
+    while len(pac) < (big*MAX+last):
+        pac = b''.join([pac,conn.recv(MAX)])  #get paclets
     if funclink:#Check if funclink is given
         return funclink.get(func,(funclink.get(254))),pac,func #return things to eval
     else:
@@ -83,7 +82,7 @@ def REC(conn,funclink=None):
 def SND(conn,pac,func):
     head, big, last  = MHEAD(len(pac),func=func)
     conn.send(head)#send header
-    if conn.recv(4) != head: print("ANCA: Sending packet missync")
+    if conn.recv(5) != head: print("ANCA: Sending packet missync")
     for x in range(0,big*MAX,MAX): #send big paclets
         conn.send(pac[x:x+MAX])
     conn.send(pac[:last])          #send last paclet

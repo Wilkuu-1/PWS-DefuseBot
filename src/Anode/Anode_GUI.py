@@ -9,12 +9,12 @@ import numpy as np
 import time
 import threading
 import tkinter as tk
-from PIL import Image,ImageTk
+from PIL import Image,ImageTk,ImageFile
 import Anode_Server as server
 
 #Options
 frps = 30 #frame refreshes per second
-
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 #Option calculations
 rft = int(1000/30) #calculation for frsp
 
@@ -49,7 +49,7 @@ class KeyHandle(): #Single key handling
                 self.func(*self.funcargs) #executes added function
             return True
         return False
-    
+
 CATHkeyWin ={49:7,
              87:25,
              65:38,
@@ -76,8 +76,8 @@ class KeyHandleGroup(): #Adds proper keydown and keyup support
     def onKeyUp(self,ev):   #Wrapper
         self.keyedit(ev,False)
     def keyedit(self,ev,state): #Refreshes the keys until the actual one is found
-        #sym = ev.keycode
-        sym = CATHkeyWin.get(ev.keycode,0)
+        sym = ev.keycode #linux keys
+        #sym = CATHkeyWin.get(ev.keycode,0) #windows 10 keys
         #print(sym)
         for key in self.keys:
             if key.refresh(sym,state):
@@ -96,6 +96,8 @@ class Anode_Win(tk.Frame):
     #init key detection
     keybinds = KeyHandleGroup()
     #makes the label the image is shown in
+    def ferr(n):
+        print(f"function {n} not found")
     def mklabel(self):
         self.lab= tk.Label(rt,image=img)
         self.lab.pack()
@@ -105,8 +107,9 @@ class Anode_Win(tk.Frame):
     def refr(self):
         global img
         #Get shown refreshed
-        img = ImageTk.PhotoImage(server.outimg)
-        self.lab.configure(image=img) #set lab to new shown #TODO Check if needed
+        if server.outupdated:
+            img = ImageTk.PhotoImage(server.outimg)
+            self.lab.configure(image=img) #set lab to new shown #TODO Check if needed
         self.master.after(rft,self.refr) #Schedule new refresh
     #event loop start
     def start(self):

@@ -23,12 +23,17 @@ import io
 sigs = []
 outimg = Image.fromarray(np.random.randint(0,255,(1000,1000,3)),mode="RGB") #Array for Anode_GUI
 imgbuf = io.BytesIO()
+outupdated = True
+
 def b2var(byt): #creates array from bytes and sets outarray with it
     global outimg
+    global outupdated
     #First 4 bytes define resolution (2 ints), 3 colors
     try: #array creation
         imgbuf.write(byt)
+        outupdated = False
         outimg = Image.open(imgbuf)
+        outupdated = True
     except:
         print("frame dropped")
 def status(byt):
@@ -47,19 +52,19 @@ class REQ(ssv.BaseRequestHandler):
     #handle function
     def handle(self):
         global sigs
+        print(self.request.recv(0))
         while True:
-            fun,pac = CATH.REC(self.request,funclink=funcl) #recieves packet
-            if sigs:
-                for sig in sigs:
-                    CATH.SND(self.request,sig[0],sig[1]) #Send all signals from sigs list
-            sigs = []
-            args = ("[WARNING]Blank function eval call")
-            func =  print
-            for x in fun: #evals all from funclink
-                exec(x)
-            func(*args) #executes constructed function
-            CATH.SND(self.request,b"abcd",1) #Acknowleges packet
-
+            for x in range(2):
+                fun,pac,func = CATH.REC(self.request,funclink=funcl) #recieves packet
+                try:
+                    exec(fun)
+                    print(f"| {fun} |did execute")
+                except:
+                    print(f"| {fun} |did not execute")
+            if not sigs: sigs = [("abcd",254)]
+            CATH.SND(self.request,sigs[0]) #Send all signals from sigs list
+            sigs = sigs[1:]
+            #execs all from funclink
 def start():#starts server
     with ssv.ThreadingTCPServer(AADDR,REQ) as ANODE:
         print(f"[SERVER]Listening on: {AADDR}")
