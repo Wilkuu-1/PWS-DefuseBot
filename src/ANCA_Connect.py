@@ -82,7 +82,8 @@ def REC(conn,funclink=None):
 def SND(conn,pac,func):
     head, big, last  = MHEAD(len(pac),func=func)
     conn.send(head)#send header
-    if conn.recv(5) != head: print("ANCA: Sending packet missync")
+    head2 = conn.recv(5)
+    if head2 != head: print(f"ANCA: Sending packet missync |{head}|{head2}|")
     for x in range(0,big*MAX,MAX): #send big paclets
         conn.send(pac[x:x+MAX])
     conn.send(pac[:last])          #send last paclet
