@@ -13,12 +13,13 @@ import time
 #WARNING: THIS EXECS THE STRINGS ENTERED, DON'T ENTER STUPID THINGS
 ANfunc={
         0:("b2var(pac)"), #Default:process image
-        2:("status(pac)" ),
+        1:("pass"),
+        2:("status(pac)"),
         254:("self.ferr(254)"), #Raises error
         255:("break"), #Ends handle function
         }
 CAfunc={
-        0:("pass"),                     #Default:pass
+        0:("pass"),           #Default:pass
         2:("keyset(pac,0)"),  #Key up
         3:("keyset(pac,1)"),  #Key down
         4:("setstatus(pac,2)"),  #Set a variable
@@ -83,6 +84,7 @@ def SND(conn,pac,func):
     head, big, last  = MHEAD(len(pac),func=func)
     conn.send(head)#send header
     head2 = conn.recv(5)
+    print(head)
     if head2 != head: print(f"ANCA: Sending packet missync |{head}|{head2}|")
     for x in range(0,big*MAX,MAX): #send big paclets
         conn.send(pac[x:x+MAX])

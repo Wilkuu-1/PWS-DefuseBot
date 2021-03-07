@@ -12,11 +12,9 @@ import tkinter as tk
 from PIL import Image,ImageTk,ImageFile
 import Anode_Server as server
 
-#Options
-frps = 30 #frame refreshes per second
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 #Option calculations
-rft = int(1000/30) #calculation for frsp
+rft = 10 #refresh delay in ms
 
 #Root window instance
 rt = tk.Tk()
@@ -87,38 +85,40 @@ keygroup=KeyHandleGroup()
 #Keymap for Cathode stuff (in keycodes)
 CATHkey =[7,25,38,39,40,79,80,81,83,84,85,87,88] #linux config
 
+def endall(): #Ends all operations
+    server.signal(b'aaaa',255) #Breaks handle function
+    rt.destroy() #Kills tk
 
 class Anode_Win(tk.Frame):
-    #saves img that is being used as global, so it doesn't get garbage collected
     #initialize shown
-    global img
-    img = ImageTk.PhotoImage(server.outimg)
-    #init key detection
-    keybinds = KeyHandleGroup()
     #makes the label the image is shown in
-    def ferr(n):
+    #initialization
+    def __init__(self,master=rt):
+        tk.Frame.__init__(self,master)
+        self.img = ImageTk.PhotoImage(server.outimage.getimg())
+        self.canvas = tk.Canvas(self, width=640, height=480)
+        self.canvas.grid(row=0, column=0)
+        self.pack()
+
+    def ferr(self,n):
         print(f"function {n} not found")
-    def mklabel(self):
-        self.lab= tk.Label(rt,image=img)
-        self.lab.pack()
-        print(self.lab)
-        return self.lab
     #refresh function
     def refr(self):
-        global img
         #Get shown refreshed
-        if server.outupdated:
-            img = ImageTk.PhotoImage(server.outimg)
-            self.lab.configure(image=img) #set lab to new shown #TODO Check if needed
+        while not server.outimage.Updated: pass
+        self.img=ImageTk.PhotoImage(server.outimage.getimg())
+        self.canvas.create_image(0, 0, anchor=tk.NW, image=self.img)
         self.master.after(rft,self.refr) #Schedule new refresh
     #event loop start
     def start(self):
-        self.master.after(rft,self.refr) #Schedule first refresh
+        self.master.after(rft+500,self.refr) #Schedule first refresh
         self.keybinds()
         self.master.mainloop()
     #initialization of binds
     def keybinds(self):
         #Additional anode keybinds go here:
+        #Killkey
+        keygroup.addKey(KeyHandle(89,send=False,func=endall,args=()))
         #-=---------=-
         for i in CATHkey: #adding cathode keys
             keygroup.addKey(KeyHandle(i))
@@ -128,11 +128,6 @@ class Anode_Win(tk.Frame):
         self.bind_all('<KeyRelease>' , keygroup.onKeyUp)
         #TODO Learn Tkinter events better, this KeyHandle solution might be unnecessary
 
-    #initialization
-    def __init__(self,master=rt):
-        tk.Frame.__init__(self,master)
-        self.pack()
-        self.mklabel()
 
 if __name__ == "__main__":
     w=Anode_Win() #make Anode_Win instance
