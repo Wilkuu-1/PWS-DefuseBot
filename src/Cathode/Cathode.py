@@ -8,20 +8,23 @@
 version = "V0.1"
 f"Cathode remote control client {version}:\n"
 
+framerate = 30 
+execdelay = 0.02
+
 #python libs
 import math
 import time
 import socket
 import threading
 import PIL
-import io
+from io import BytesIO
 
 #Own libs
 import ANCA_Connect as ANODE
 import Cathode_Motor
 
 #RPI libs
-from picamera import PiCamera
+from picamera import PiCamera, PiCameraCircularIO
 import Adafruit_PCA9685
 import smbus
 import RPi.GPIO as GPIO
@@ -34,8 +37,6 @@ SERVO = Adafruit_PCA9685.PCA9685()
 SOCK = socket.socket()
 #Funclink choice
 Flnk = ANODE.CAfunc
-
-
 #key dict (setting controls)
 keylst={'UP':25,
         'DW':39,
@@ -63,13 +64,16 @@ keyval ={keylst['UP']:False,
          keylst['DUP']:False,
          keylst['DDW']:False}
 
-#Camera objects
-camera = PiCamera()
-#Kill var
-notStopped = True
+#signals var
+sigs=[("Cathode: Hello".encode('utf-8'),2)]
+#kill var
+def setStopped(b):
+    global notStopped
+    notStopped = b 
 
 def givestatus(message):
-    ANODE.SND(SOCK,message.encode('utf-8'),2)
+    if len(sigs) < 5:
+        sigs.append((message.encode('utf-8'),2))
 
 def getkey(key):
     return keyval[keylst[key]]
@@ -92,7 +96,7 @@ def motorSpeed(s,key,antag,incr): #TODO tune and test all key combos
     if speed != 0 and not UP and not DW and not AN and not KE: speed = 0
     if   speed > 1.0 : speed = 1.0 #clamp
     elif speed < -1.0: speed = -1.0
-    return speed, s != speed
+    return speed 
 
 def servoAngle(a,keyp,incr,CONT=False): #continous servo config 
     angle = a
@@ -103,40 +107,44 @@ def servoAngle(a,keyp,incr,CONT=False): #continous servo config
     elif CONT : a = 0  
     if a > 1.0: a = 1.0
     if a < 0.0: a = 0.0
-    return angle, angle != a
+    return angle
 
 motorIncr = 0.2
 servoIncr = [0.1,0.1,0.1,0.1]
 
 def update():
     #init motors
-    motorLSpeed = 0.0
-    motorRSpeed = 0.0
     motorL = Cathode_Motor.Motor(27,22,12)
     motorR = Cathode_Motor.Motor(23,24,13)
+    motorLSpeed = 0.0
+    motorRSpeed = 0.0
     #init servos
     SERVO.set_pwm_freq(50) #Sets pwm freq to 60hz
     angles = [0.0,0.0,0.0,0.0]
     givestatus("update loop starting")
     #Loop
     while notStopped:
-        motorLSpeed,Lch= motorSpeed(motorLSpeed,'RI','LE',motorIncr)
-        motorRSpeed,Rch= motorSpeed(motorRSpeed,'LE','RI',motorIncr)
-        if Lch: motorL.setSpeed(motorLspeed)
-        if Rch: motorR.setSpeed(motorRspeed)
-        angles[0],chS = servoAngle(angles[0],'A',servoIncr[0],CONT=True)
-        if chS: SERVO.set_pwm(8,0,angles[0]*30+380)
-        angles[1],chS = servoAngle(angles[1],'B',servoIncr[1],CONT=True)
-        if chS: SERVO.set_pwm(9,0,angles[1]*30+380)
-        angles[2],chS = servoAngle(angles[2],'C',servoIncr[2],CONT=True)
-        if chS: SERVO.set_pwm(10,0,angles[2]*30+380)
-        angles[3],chS = servoAngle(angles[3],'D',servoIncr[3])
-        if chS: SERVO.set_pwm(11,0,angles[3]*50+375) #TODO Need to calibrate 
+        motorLSpeed = motorSpeed(motorLSpeed,'RI','LE',motorIncr)
+        motorRSpeed = motorSpeed(motorRSpeed,'LE','RI',motorIncr)
+        motorL.setSpeed(motorLSpeed)
+        motorR.setSpeed(motorRSpeed)
+        angles[0] = servoAngle(angles[0],'A',servoIncr[0],CONT=True)
+        SERVO.set_pwm(8,0,int(angles[0]*30+380))
+        angles[1] = servoAngle(angles[1],'B',servoIncr[1],CONT=True)
+        SERVO.set_pwm(9,0,int(angles[1]*30+380))
+        angles[2] = servoAngle(angles[2],'C',servoIncr[2],CONT=True)
+        SERVO.set_pwm(10,0,int(angles[2]*30+380))
+        angles[3] = servoAngle(angles[3],'D',servoIncr[3])
+        SERVO.set_pwm(11,0,int(angles[3]*50+375)) #TODO Need to calibrate 
+    angles = [0.0,0.0,0.0,0.0]
+    for i in range(0,2):
+        SERVO.set_pwm(8+1,0,int(angles[i]*30+380))
+    SERVO.set_pwm(8+1,0,int(angles[3]))
 
 def keyset(byt,m):
     #TODO add some sync
     givestatus("a key has been set")
-    key = int.from_bytes(byt,order='big',signed=False)
+    key = int.from_bytes(byt,byteorder='big',signed=False)
     if m > 1: #check if the key has to be toggled
         keyval[key] = not keyval[key]
     else:
@@ -154,42 +162,83 @@ def setstatus(byt): #dangerous value changing function
         eval(f"{name}={string(valb)}")
     givestatus("variable {name} changed to {valb}")
 
-def ferr(n):
-    print("invalid func")
-def handle():
-    givestatus("handle loop starting")
-    while True:
-         func=print
-         args=("blankfunc")
-         toeval,pac = ANODE.REC(SOCK,funclink=ANODE.CAfunc)
-         for e in toeval:
-            exec(e)
-         func(*args)
-    notStopped = False
+def ferr():
+    #print("invalid func")
+    pass
 
-#image buffer
-imgbytes = io.BytesIO()
 
-def picture():
-    time.sleep(5) #camera warmup
-    #take, parse, send: picture
+camera = PiCamera(resolution=(640,480),framerate=60)
+class byteImage():
+    def __init__(self):
+        self.Storage = BytesIO()
+        self.ready   = False
+    def update(self):
+        self.ready = False
+        self.Storage.seek(0)
+        self.Storage.truncate(0)
+        camera.capture(self.Storage,format='jpeg',use_video_port=True,quality=25) #Captures image as jpeg file into the stream
+        self.ready = True
+    def getdump(self):
+        return self.Storage.getvalue()
+    def setready(self,ready):
+        self.ready = ready
+
+img = byteImage() 
+
+def picture(): #takes pictures @30fps max
+    readready = False
+    delay = 0.01
+    time.sleep(3) #Camera warmup
+    print("starting recording")
+    print(notStopped)
     while notStopped:
-        camera.capture(imgbytes,"jpeg")
-        ANODE.SND(SOCK,imgbytes.getvalue(),0) #sends pic as jpeg
-        time.sleep(1/30) #simple refresh rate limiter
+        if not img.ready:       #Checks if previous frame had been sent
+            img.update()
+            sigs.append("img")      #Adds the "img" internal signal 
+            time.sleep((1/framerate)-(execdelay+delay)) #TODO make this less lazy #Sets framerate using delay
+        else:
+            time.sleep(delay)
+    camera.close()
+
+def handle(): #handles communications with Anode
+    global sigs
+    time.sleep(1)
+    print(notStopped)
+    print('starting exchange of signals')
+    while notStopped:
+        #Sending part
+        if sigs[0] != "img":        #Picks up the "img" internal signal
+            ANODE.SND(SOCK,*sigs[0])            #Sends any other signal
+        else:
+            while not img.ready: pass           #Waits till an image is ready
+            print("frame sending")
+            ANODE.SND(SOCK,img.getdump(),0)  #Reads the entire buffer and sends it to Anode
+            img.setready(False)
+        sigs=sigs[1:]                     #Removes sent signal
+        if len(sigs)<1: sigs.append(("ECHO".encode('utf-8'),1)) #Adds the idle signal if no signals are to be sent
+        #Recievieng part
+        toexec,pac,func = ANODE.REC(SOCK,funclink=ANODE.CAfunc)
+        try: #Tries to execute the funclink
+            exec(toexec) 
+        except Exception as e:
+            print(e)
+            #givestatus(f"CATH: {toexec} not executed")
+
 
 #Thread objects
-picThread     = threading.Thread(target=picture)
 manThread     = threading.Thread(target=update)
-
+picThread     = threading.Thread(target=picture)
 def start():
     #socket setup
+    setStopped(True)
     SOCK.connect(ANODE.AADDR)
     givestatus("connected")
     #3 loops:
-    picThread.start() #sends pictures to Anode
+    picThread.start()   #takes pictures
     manThread.start()   #Manages the machine
     handle() #handles requests
+    setStopped(False) #stop everything
+    time.sleep(1) #Wait for other processes
 
 if __name__ == "__main__":
     print(f"Cathode remote control client {version}:\n")

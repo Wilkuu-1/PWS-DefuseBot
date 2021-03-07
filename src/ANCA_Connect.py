@@ -24,7 +24,7 @@ CAfunc={
         3:("keyset(pac,1)"),  #Key down
         4:("setstatus(pac,2)"),  #Set a variable
         254:("ferr()"), #Raises unknown function error
-        255:("break"),                 #Ends handle function
+        255:("setStopped(False)"),                 #Ends handle function
         }
 
 #++END OF FUNC LINKS
@@ -84,7 +84,6 @@ def SND(conn,pac,func):
     head, big, last  = MHEAD(len(pac),func=func)
     conn.send(head)#send header
     head2 = conn.recv(5)
-    print(head)
     if head2 != head: print(f"ANCA: Sending packet missync |{head}|{head2}|")
     for x in range(0,big*MAX,MAX): #send big paclets
         conn.send(pac[x:x+MAX])

@@ -8,7 +8,6 @@ GPIO.setmode(GPIO.BCM)
 class Motor():
     pin1 = None
     pin2 = None
-    pin3 = None
     pwm  = None
     def __init__(self,pin1,pin2,pinpwm):
         self.pin1  = pin1
@@ -18,7 +17,7 @@ class Motor():
         GPIO.setup(pinpwm,GPIO.OUT)
         self.pwm = GPIO.PWM(pinpwm,50.0)
 
-    def setSpeed(speed):
+    def setSpeed(self,speed):
         if speed   < 0.001 and speed > -0.001:
             GPIO.output(self.pin1, GPIO.HIGH)
             GPIO.output(self.pin2, GPIO.HIGH) #BRAKE  (1 on  2 on)
